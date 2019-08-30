@@ -1,5 +1,5 @@
 # rust-contact-mailer
-Microservice accepting contact form request and sends mail
+Accepts contact form request and sends mail
 
 ## Using crates
 
