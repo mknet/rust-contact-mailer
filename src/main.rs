@@ -3,6 +3,7 @@ extern crate gotham;
 extern crate hyper;
 extern crate serde_json;
 extern crate serde;
+extern crate dotenv;
 
 use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
@@ -53,6 +54,10 @@ fn router() -> Router {
 }
 
 fn main() {
+    for (key, value) in dotenv::vars() {
+        println!("key: {}, value: {}", key, value)
+    }
+
     let addr = "0.0.0.0:7878";
     gotham::start(addr, router())
 }
