@@ -10,7 +10,11 @@ pub struct ContactMail {
     pub message: String
 }
 
-pub fn send_contact_mail(mail_data: ContactMail) {
+pub struct Config {
+    pub password: String
+}
+
+pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
     let email = Email::builder()
         // Addresses can be specified by the tuple (email, alias)
         .to(("kontakt@marcelkoch.net", "Marcel Koch"))
@@ -23,7 +27,7 @@ pub fn send_contact_mail(mail_data: ContactMail) {
     // Open a local connection on port 25
     let mut mailer = SmtpClient::new_simple("koch.kasserver.com").unwrap()
         .smtp_utf8(true)
-        .credentials(Credentials::new("kontakt@marcelkoch.net".to_string(), "notvalid".to_string()))
+        .credentials(Credentials::new("kontakt@marcelkoch.net".to_string(), config.password))
         .authentication_mechanism(Mechanism::Login)
         .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
         .transport();

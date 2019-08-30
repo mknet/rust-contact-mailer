@@ -15,6 +15,8 @@ use hyper::{Body, HeaderMap, Method, StatusCode, Uri, Version};
 
 mod mail;
 
+const SMTP_PASSWORD_KEY: &str = "MK_RUST_MAILER_SMTP_PASSWORD";
+
 fn print_request_elements(state: &State) {
     let method = Method::borrow_from(state);
     let uri = Uri::borrow_from(state);
@@ -27,6 +29,10 @@ fn print_request_elements(state: &State) {
 }
 
 fn post_handler(mut state: State) -> Box<HandlerFuture> {
+    let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
+
+    let mail_config = mail::Config { password: smtp_password };
+
     print_request_elements(&state);
     let f = Body::take_from(&mut state)
         .concat2()
@@ -37,7 +43,7 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
 
                 let mail_data: mail::ContactMail = serde_json::from_str(body_content.as_str()).unwrap();
 
-                mail::send_contact_mail(mail_data);
+                mail::send_contact_mail(mail_config, mail_data);
                 let res = create_empty_response(&state, StatusCode::OK);
                 future::ok((state, res))
             }
@@ -54,10 +60,6 @@ fn router() -> Router {
 }
 
 fn main() {
-    for (key, value) in dotenv::vars() {
-        println!("key: {}, value: {}", key, value)
-    }
-
     let addr = "0.0.0.0:7878";
     gotham::start(addr, router())
 }
