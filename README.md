@@ -5,3 +5,11 @@ Accepts contact form request and sends mail
 
 - gotham
 - lettre
+
+## Deployment
+
+Using ansible.
+
+### Install galaxy roles
+
+``ansible-galaxy install -r requirements.yml``
