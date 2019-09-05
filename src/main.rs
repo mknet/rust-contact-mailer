@@ -1,9 +1,9 @@
+extern crate dotenv;
 extern crate futures;
 extern crate gotham;
 extern crate hyper;
-extern crate serde_json;
 extern crate serde;
-extern crate dotenv;
+extern crate serde_json;
 
 use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
@@ -31,7 +31,9 @@ fn print_request_elements(state: &State) {
 fn post_handler(mut state: State) -> Box<HandlerFuture> {
     let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
 
-    let mail_config = mail::Config { password: smtp_password };
+    let mail_config = mail::Config {
+        password: smtp_password,
+    };
 
     print_request_elements(&state);
     let f = Body::take_from(&mut state)
@@ -41,7 +43,8 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
                 println!("Body: {}", body_content);
 
-                let mail_data: mail::ContactMail = serde_json::from_str(body_content.as_str()).unwrap();
+                let mail_data: mail::ContactMail =
+                    serde_json::from_str(body_content.as_str()).unwrap();
 
                 mail::send_contact_mail(mail_config, mail_data);
                 let res = create_empty_response(&state, StatusCode::OK);

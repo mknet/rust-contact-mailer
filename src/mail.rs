@@ -1,17 +1,17 @@
-use lettre::{SmtpClient, Transport};
-use lettre_email::{Email};
-use serde::{Deserialize, Serialize};
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::ConnectionReuseParameters;
+use lettre::{SmtpClient, Transport};
+use lettre_email::Email;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct ContactMail {
     pub sender_address: String,
-    pub message: String
+    pub message: String,
 }
 
 pub struct Config {
-    pub password: String
+    pub password: String,
 }
 
 pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
@@ -25,9 +25,13 @@ pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
         .unwrap();
 
     // Open a local connection on port 25
-    let mut mailer = SmtpClient::new_simple("koch.kasserver.com").unwrap()
+    let mut mailer = SmtpClient::new_simple("koch.kasserver.com")
+        .unwrap()
         .smtp_utf8(true)
-        .credentials(Credentials::new("kontakt@marcelkoch.net".to_string(), config.password))
+        .credentials(Credentials::new(
+            "kontakt@marcelkoch.net".to_string(),
+            config.password,
+        ))
         .authentication_mechanism(Mechanism::Login)
         .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
         .transport();
@@ -42,4 +46,3 @@ pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
 
     mailer.close();
 }
-
