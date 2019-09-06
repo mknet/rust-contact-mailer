@@ -38,7 +38,7 @@ jobs:
 #          name: Build Release
 #          command: cargo build --release
       - persist_to_workspace:
-          root: /tmp/workspace
+          root: ~/rust-contact-mailer
           paths:
             - target/release/rust-contact-mailer
 
@@ -48,7 +48,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /tmp/workspace
+          at: ~/rust-contact-mailer
       - run:
           name: Run ansible playbook
           command: |
