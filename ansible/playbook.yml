@@ -10,3 +10,10 @@
   roles:
     - role: fubarhouse.rust
   tasks:
+    - name: Copy file with owner and permissions
+      copy:
+        src: ../target/release/rust-contact-mailer
+        dest: ~/rust-contact-mailer
+        owner: mknet
+        group: mknet
+        mode: '0755'
