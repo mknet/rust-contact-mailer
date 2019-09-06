@@ -58,9 +58,12 @@ jobs:
           command: |
             chmod 755 ansible/vault-env
       - run:
-          name: Show content of target file from worspace
+          name: Copy target from workspace root to working directory
           command: |
-            ls -la ~/rust-contact-mailer
+            cp -R ~/rust-contact-mailer/target .
+      - run:
+          name: Show content of working directory
+          command: |
             ls -la
       - run:
           name: Run ansible playbook
