@@ -1,0 +1,141 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/rust:latest
+    working_directory: ~/rust-contact-mailer
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: |
+            rustc --version
+            cargo --version
+            rustup --version
+#      - run:
+#          name: Setup build environment
+#          command: |
+#            sudo apt-get update
+#            sudo apt-get install -y cmake binutils-dev libiberty-dev libelf-dev libdw-dev
+#          no_output_timeout: 1800s
+#      - run:
+#          name: Format
+#          command: |
+#            rustup component add rustfmt
+#            cargo fmt -- --check
+#      - run:
+#          name: Clippy
+#          command: |
+#            rustup component add clippy
+#            cargo clippy --all
+#      - run:
+#          name: Test
+#          command: RUST_BACKTRACE=1 cargo test
+      - run:
+          name: Build Release
+          command: cargo build --release
+      - persist_to_workspace:
+          root: ~/rust-contact-mailer
+          paths:
+            - target/release/rust-contact-mailer
+
+  deploy:
+    docker:
+      - image: cytopia/ansible:latest-tools
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/rust-contact-mailer
+      - run:
+          name: Install ansible galaxy roles
+          command: |
+            ansible-galaxy install -r ansible/requirements.yml
+      - run:
+          name: Make vault-env executable
+          command: |
+            chmod 755 ansible/vault-env
+      - run:
+          name: Copy target from workspace root to working directory
+          command: |
+            cp -R ~/rust-contact-mailer/target .
+      - run:
+          name: Show content of working directory
+          command: |
+            ls -la
+      - run:
+          name: Run ansible playbook
+          command: |
+            ansible-playbook -i ansible/hosts ansible/playbook.yml --vault-password-file ansible/vault-env
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+
+# Original config.yml file:
+# version: 2.1
+# jobs:
+#   build:
+#     docker:
+#       - image: circleci/rust:latest
+#
+#     working_directory: ~/rust-demo-ci
+#
+#     steps:
+#       - checkout
+#       - run:
+#           name: Version information
+#           command: |
+#             rustc --version
+#             cargo --version
+#             rustup --version
+#       - run:
+#           name: Setup build environment
+#           command: |
+#             sudo apt-get update
+#             sudo apt-get install -y cmake binutils-dev libiberty-dev libelf-dev libdw-dev
+#           no_output_timeout: 1800s
+#       - run:
+#           name: Format
+#           command: |
+#             rustup component add rustfmt
+#             cargo fmt -- --check
+#       - run:
+#           name: Clippy
+#           command: |
+#             rustup component add clippy
+#             cargo clippy --all
+#       - run:
+#           name: Test
+#           command: RUST_BACKTRACE=1 cargo test
+#       - run:
+#           name: Coverage
+#           command: |
+#             # install kcov
+#             export KCOV_VERSION=36
+#             wget https://github.com/SimonKagstrom/kcov/archive/v$KCOV_VERSION.tar.gz
+#             tar xzf v$KCOV_VERSION.tar.gz && rm v$KCOV_VERSION.tar.gz
+#             cd kcov-$KCOV_VERSION
+#             mkdir build && cd build
+#             cmake .. && make && make install DESTDIR=../../kcov-build
+#             cd ../.. && rm -rf kcov-$KCOV_VERSION
+#
+#             # generate and upload code coverage
+#             for file in $(find target/debug -maxdepth 1 -name '*-*' -a ! -name '*.d' ! -name '.*'); do
+#               [ -x \"${file}\" ] || continue
+#               mkdir -p \"target/cov/$(basename $file)\"
+#               ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify \"target/cov/$(basename $file)\" \"$file\"
+#             done
+#             bash <(curl -s https://codecov.io/bash)
+#             echo \"Uploaded code coverage\"
+#
+# workflows:
+#   version: 2.1
+#   build:
+#     jobs:
+#       - build
