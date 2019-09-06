@@ -50,6 +50,10 @@ jobs:
       - attach_workspace:
           at: ~/rust-contact-mailer
       - run:
+          name: Install ansible galaxy roles
+          command: |
+            ansible-galaxy install -r ansible/requirements.yml
+      - run:
           name: Run ansible playbook
           command: |
             ansible-playbook -i ansible/hosts ansible/playbook.yml --vault-password-file ansible/vault-env
