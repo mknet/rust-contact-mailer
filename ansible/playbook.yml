@@ -10,10 +10,28 @@
   roles:
     - role: fubarhouse.rust
   tasks:
-    - name: Copy file with owner and permissions
+    - name: Remove sources if present
+      file:
+        path: ~/rust-mailer-src
+        state: absent
+    - name: Copy Rust source files and cargo files
       copy:
-        src: ../target/release/rust-contact-mailer
-        dest: ~/rust-contact-mailer
-        owner: mknet
-        group: mknet
-        mode: '0755'
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{item.mode}}"
+      with_items:
+      - { src: '../src', dest: '~/rust-mailer-src/.', mode: '0755' }
+      - { src: '../Cargo.lock', dest: '~/rust-mailer-src/.', mode: '0644'}
+      - { src: '../Cargo.toml', dest: '~/rust-mailer-src/.', mode: '0644'}
+    - name: Build binary using cargo
+      shell: ~/.cargo/bin/cargo build --release
+      args:
+        chdir: ~/rust-mailer-src
+    - name: Create deployed directory
+      file: path=~/deployed state=directory
+    - name: Copy binary to dir "deployed"
+      copy: remote_src=True src=~/rust-mailer-src/target/release/rust-contact-mailer dest=~/deployed/rust-contact-mailer mode='744'
+    - name: Clean-up sources
+      file:
+        path: ~/rust-mailer-src
+        state: absent
