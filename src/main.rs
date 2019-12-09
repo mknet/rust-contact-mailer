@@ -4,6 +4,8 @@ extern crate gotham;
 extern crate hyper;
 extern crate serde;
 extern crate serde_json;
+extern crate log;
+extern crate env_logger;
 
 use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
@@ -12,6 +14,7 @@ use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes
 use gotham::router::Router;
 use gotham::state::{FromState, State};
 use hyper::{Body, HeaderMap, Method, StatusCode, Uri, Version};
+use log::{info};
 
 mod mail;
 
@@ -63,6 +66,10 @@ fn router() -> Router {
 }
 
 fn main() {
+    env_logger::init();
+
+    info!("Starting MK Rust Contact Mailer, listening on port: 7878");
+
     let addr = "0.0.0.0:7878";
     gotham::start(addr, router())
 }
