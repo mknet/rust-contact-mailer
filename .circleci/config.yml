@@ -34,10 +34,6 @@ jobs:
       - run:
           name: Build Release
           command: cargo build
-      - persist_to_workspace:
-          root: ~/rust-contact-mailer
-          paths:
-            - target/release/rust-contact-mailer
 
   deploy:
     docker:
