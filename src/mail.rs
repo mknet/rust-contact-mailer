@@ -17,7 +17,7 @@ pub struct Config {
 pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
     let email = Email::builder()
         // Addresses can be specified by the tuple (email, alias)
-        .to(("kontakt@marcelkoch.net", "Marcel Koch"))
+        .to(("helferlein@marcelkoch.net", "Marcel Koch"))
         .from(mail_data.sender_address)
         .subject("Kontaktformular")
         .text(mail_data.message)
@@ -29,7 +29,7 @@ pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
         .unwrap()
         .smtp_utf8(true)
         .credentials(Credentials::new(
-            "kontakt@marcelkoch.net".to_string(),
+            "helferlein@marcelkoch.net".to_string(),
             config.password,
         ))
         .authentication_mechanism(Mechanism::Login)
