@@ -33,7 +33,7 @@ jobs:
 #          command: RUST_BACKTRACE=1 cargo test
       - run:
           name: Build Release
-          command: cargo build --release
+          command: cargo build
       - persist_to_workspace:
           root: ~/rust-contact-mailer
           paths:
