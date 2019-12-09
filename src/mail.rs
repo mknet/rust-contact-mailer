@@ -3,6 +3,7 @@ use lettre::smtp::ConnectionReuseParameters;
 use lettre::{SmtpClient, Transport};
 use lettre_email::Email;
 use serde::{Deserialize, Serialize};
+use log::{info};
 
 #[derive(Serialize, Deserialize)]
 pub struct ContactMail {
