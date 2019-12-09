@@ -50,7 +50,11 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
                     serde_json::from_str(body_content.as_str()).unwrap();
 
                 mail::send_contact_mail(mail_config, mail_data);
-                let res = create_empty_response(&state, StatusCode::OK);
+                let mut res = create_empty_response(&state, StatusCode::OK);
+                {
+                  let headers = res.headers_mut();
+                  headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                };
                 future::ok((state, res))
             }
             Err(e) => future::err((state, e.into_handler_error())),
