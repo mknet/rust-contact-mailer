@@ -13,7 +13,7 @@ use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
 use gotham::state::{FromState, State};
-use hyper::{Body, HeaderMap, Method, StatusCode, Uri, Version};
+use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version};
 use log::{info};
 
 mod mail;
@@ -53,7 +53,9 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 let mut res = create_empty_response(&state, StatusCode::OK);
                 {
                   let headers = res.headers_mut();
-                  headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                  headers.insert("Access-Control-Allow-Origin", "stage.marcelkoch.net".parse().unwrap());
+                  headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
+                  headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
                 };
                 future::ok((state, res))
             }
@@ -63,9 +65,23 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
     Box::new(f)
 }
 
+pub fn options_handler(state: State) -> (State, Response<Body>) {
+  let mut res = create_empty_response(&state, StatusCode::OK);
+
+  {
+    let headers = res.headers_mut();
+    headers.insert("Access-Control-Allow-Origin", "stage.marcelkoch.net".parse().unwrap());
+    headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
+    headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
+  };
+
+  (state, res)
+}
+
 fn router() -> Router {
     build_simple_router(|route| {
         route.post("/").to(post_handler);
+        route.options("/").to(options_handler);
     })
 }
 
