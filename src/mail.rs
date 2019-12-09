@@ -39,7 +39,7 @@ pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
     let result = mailer.send(email.into());
 
     if result.is_ok() {
-        println!("Email sent");
+      info!("E-Mail was sent successfully!");
     } else {
         println!("Could not send email: {:?}", result);
     }
