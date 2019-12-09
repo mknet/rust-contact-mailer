@@ -35,3 +35,5 @@
       file:
         path: ~/rust-mailer-src
         state: absent
+    - name: Restart mailer using supervisord
+      shell: supervisorctl restart mailer
