@@ -40,24 +40,6 @@ jobs:
       - image: cytopia/ansible:latest-tools
     steps:
       - checkout
-      - attach_workspace:
-          at: ~/rust-contact-mailer
-      - run:
-          name: Install ansible galaxy roles
-          command: |
-            ansible-galaxy install -r ansible/requirements.yml
-      - run:
-          name: Make vault-env executable
-          command: |
-            chmod 755 ansible/vault-env
-      - run:
-          name: Copy target from workspace root to working directory
-          command: |
-            cp -R ~/rust-contact-mailer/target .
-      - run:
-          name: Show content of working directory
-          command: |
-            ls -la
       - run:
           name: Run ansible playbook
           command: |
