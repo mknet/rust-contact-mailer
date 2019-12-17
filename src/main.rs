@@ -70,7 +70,7 @@ pub fn options_handler(state: State) -> (State, Response<Body>) {
 
   {
     let headers = res.headers_mut();
-    headers.insert("Access-Control-Allow-Origin", "https://stage.marcelkoch.net".parse().unwrap());
+    headers.insert("Access-Control-Allow-Origin", "https://www.marcelkoch.net".parse().unwrap());
     headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
     headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
   };
