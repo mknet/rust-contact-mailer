@@ -68,12 +68,16 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
 pub fn options_handler(state: State) -> (State, Response<Body>) {
   let mut res = create_empty_response(&state, StatusCode::OK);
 
-  {
-    let headers = res.headers_mut();
-    headers.insert("Access-Control-Allow-Origin", "https://www.marcelkoch.net".parse().unwrap());
-    headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
-    headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
-  };
+  let request_headers = HeaderMap::borrow_from(stage);
+    match request_headers.get("origin") {
+        Some(originHeader(r"https:\/\/(.*\.)?marcelkoch\.net")) => {
+            let response_headers = res.headers_mut();
+            response_headers.insert("Access-Control-Allow-Origin", originHeader.parse().unwrap());
+            response_headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
+            response_headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
+        },
+        _ => {}
+    }
 
   (state, res)
 }
