@@ -15,6 +15,7 @@ use gotham::router::Router;
 use gotham::state::{FromState, State};
 use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version};
 use log::{info};
+use hyper::header::HeaderValue;
 
 mod mail;
 
@@ -68,11 +69,13 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
 pub fn options_handler(state: State) -> (State, Response<Body>) {
   let mut res = create_empty_response(&state, StatusCode::OK);
 
-  let request_headers = HeaderMap::borrow_from(stage);
-    match request_headers.get("origin") {
-        Some(originHeader(r"https:\/\/(.*\.)?marcelkoch\.net")) => {
+  let request_headers = HeaderMap::borrow_from(&state);
+    let origin_header = request_headers.get("origin");
+    // let header_value_to_check = HeaderValue::from_static(r"https:\/\/(.*\.)?marcelkoch\.net");
+    match origin_header {
+        Some(header_value_to_check) if header_value_to_check.to_str().unwrap().ends_with("marcelkoch.net") => {
             let response_headers = res.headers_mut();
-            response_headers.insert("Access-Control-Allow-Origin", originHeader.parse().unwrap());
+            response_headers.insert("Access-Control-Allow-Origin", HeaderValue::from(origin_header.unwrap()));
             response_headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
             response_headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
         },
