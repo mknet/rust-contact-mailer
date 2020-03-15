@@ -13,7 +13,7 @@ use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
 use gotham::state::{FromState, State};
-use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version};
+use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version, Chunk, Error};
 use log::{info};
 use hyper::header::HeaderValue;
 
@@ -32,7 +32,31 @@ fn print_request_elements(state: &State) {
     println!("Headers: {:?}", headers);
 }
 
-fn post_handler(mut state: State) -> Box<HandlerFuture> {
+fn body_handler(full_body: Result<Chunk, Error>) -> (State, Response<Body>) {
+    let result: (State, Response<Body>) = match full_body {
+        Ok(valid_body) => {
+            let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
+            println!("Body: {}", body_content);
+
+            let mail_data: mail::ContactMail =
+                serde_json::from_str(body_content.as_str()).unwrap();
+
+            mail::send_contact_mail(mail_config, mail_data);
+            let mut res = create_empty_response(&state, StatusCode::OK);
+            {
+                let headers = res.headers_mut();
+                headers.insert("Access-Control-Allow-Origin", "https://stage.marcelkoch.net".parse().unwrap());
+                headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
+                headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
+            };
+            (state, res)
+        }
+        Err(e) =>  (state, e.into_handler_error()),
+    };
+    result;
+}
+
+fn post_handler(mut state: State) -> (State, Response<Body>) {
     let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
 
     let mail_config = mail::Config {
@@ -40,30 +64,11 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
     };
 
     print_request_elements(&state);
-    let f = Body::take_from(&mut state)
+    let result = Body::take_from(&mut state)
         .concat2()
-        .then(|full_body| match full_body {
-            Ok(valid_body) => {
-                let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
-                println!("Body: {}", body_content);
+        .then(body_handler);
 
-                let mail_data: mail::ContactMail =
-                    serde_json::from_str(body_content.as_str()).unwrap();
-
-                mail::send_contact_mail(mail_config, mail_data);
-                let mut res = create_empty_response(&state, StatusCode::OK);
-                {
-                  let headers = res.headers_mut();
-                  headers.insert("Access-Control-Allow-Origin", "https://stage.marcelkoch.net".parse().unwrap());
-                  headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
-                  headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
-                };
-                future::ok((state, res))
-            }
-            Err(e) => future::err((state, e.into_handler_error())),
-        });
-
-    Box::new(f)
+    result;
 }
 
 pub fn options_handler(state: State) -> (State, Response<Body>) {
