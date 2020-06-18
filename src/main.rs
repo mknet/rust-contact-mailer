@@ -54,7 +54,7 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 let mut res = create_empty_response(&state, StatusCode::OK);
                 {
                   let headers = res.headers_mut();
-                  headers.insert("Access-Control-Allow-Origin", "https://stage.marcelkoch.net".parse().unwrap());
+                  headers.insert("Access-Control-Allow-Origin", "https://www.marcelkoch.net".parse().unwrap());
                   headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
                   headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
                 };
