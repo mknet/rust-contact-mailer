@@ -2,8 +2,8 @@ use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::ConnectionReuseParameters;
 use lettre::{SmtpClient, Transport};
 use lettre_email::Email;
+use log::info;
 use serde::{Deserialize, Serialize};
-use log::{info};
 
 #[derive(Serialize, Deserialize)]
 pub struct ContactMail {
@@ -40,7 +40,7 @@ pub fn send_contact_mail(config: Config, mail_data: ContactMail) {
     let result = mailer.send(email.into());
 
     if result.is_ok() {
-      info!("E-Mail was sent successfully!");
+        info!("E-Mail was sent successfully!");
     } else {
         println!("Could not send email: {:?}", result);
     }
