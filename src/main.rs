@@ -13,13 +13,13 @@ use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
 use gotham::state::{FromState, State};
-use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version};
+use hyper::{Body, Response, HeaderMap, Method, StatusCode, Uri, Version, Chunk};
 use log::{info};
 use hyper::header::HeaderValue;
 
 mod mail;
 
-const SMTP_PASSWORD_KEY: &str = "MK_RUST_MAILER_SMTP_PASSWORD";
+const SMTP_PASSWORD_KEY: &'static str = "MK_RUST_MAILER_SMTP_PASSWORD";
 
 fn print_request_elements(state: &State) {
     let method = Method::borrow_from(state);
@@ -33,18 +33,26 @@ fn print_request_elements(state: &State) {
 }
 
 fn post_handler(mut state: State) -> Box<HandlerFuture> {
+    print_request_elements(&state);
+    let f = Body::take_from(&mut state)
+        .concat2()
+        .then(|full_body| match full_body {
+            Ok(valid_body) => future::ok(handle_valid_body(valid_body, state)),
+            Err(e) => future::err((state, e.into_handler_error()))
+        });
+
+    Box::new(f)
+}
+
+
+fn handle_valid_body(body: Chunk, state: State) -> (State, Response<Body>) {
     let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
 
     let mail_config = mail::Config {
         password: smtp_password,
     };
 
-    print_request_elements(&state);
-    let f = Body::take_from(&mut state)
-        .concat2()
-        .then(|full_body| match full_body {
-            Ok(valid_body) => {
-                let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
+    let body_content = String::from_utf8(body.to_vec()).unwrap();
                 println!("Body: {}", body_content);
 
                 let mail_data: mail::ContactMail =
@@ -58,12 +66,8 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
                   headers.insert("Access-Control-Allow-Methods", "POST, OPTIONS, HEAD".parse().unwrap());
                   headers.insert("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token".parse().unwrap());
                 };
-                future::ok((state, res))
-            }
-            Err(e) => future::err((state, e.into_handler_error())),
-        });
 
-    Box::new(f)
+    (state, res)
 }
 
 pub fn options_handler(state: State) -> (State, Response<Body>) {
@@ -99,4 +103,16 @@ fn main() {
 
     let addr = "0.0.0.0:7878";
     gotham::start(addr, router())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use futures::{future};
+
+    #[test]
+    fn test_futures() {
+        let a = future::ok::<i32, i32>(1);
+        assert_eq!(a.await, Ok(1));
+    }
 }
