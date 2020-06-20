@@ -37,14 +37,14 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
     let f = Body::take_from(&mut state)
         .concat2()
         .then(|full_body| match full_body {
-            Ok(valid_body) => future::ok(handle_valid_body(valid_body, state)),
+            Ok(valid_body) => future::ok(handle_valid_body(valid_body, state, mail::send_contact_mail)),
             Err(e) => future::err((state, e.into_handler_error())),
         });
 
     Box::new(f)
 }
 
-fn handle_valid_body(body: Chunk, state: State) -> (State, Response<Body>) {
+fn handle_valid_body<F: Fn (mail::Config, mail::ContactMail)>(body: Chunk, state: State, send_fn: F) -> (State, Response<Body>) {
     let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
 
     let mail_config = mail::Config {
@@ -56,7 +56,7 @@ fn handle_valid_body(body: Chunk, state: State) -> (State, Response<Body>) {
 
     let mail_data: mail::ContactMail = serde_json::from_str(body_content.as_str()).unwrap();
 
-    mail::send_contact_mail(mail_config, mail_data);
+    send_fn(mail_config, mail_data);
     let mut res = create_empty_response(&state, StatusCode::OK);
     {
         let headers = res.headers_mut();
@@ -129,11 +129,20 @@ fn main() {
 #[cfg(test)]
 mod tests {
 
-    use futures::future;
+    use super::*;
+    use mail::ContactMail;
+    use mail::Config;
 
     #[test]
-    fn test_futures() {
-        let a = future::ok::<i32, i32>(1);
-        assert_eq!(a.await, Ok(1));
+    fn test_handler() {
+        
+        fn dummy_send(config: Config, mail_data: ContactMail) {
+            // do nothing
+        }
+
+        State::with_new(|state| {
+            handle_valid_body(hyper::Chunk::from(""), state, dummy_send);
+        });
+
     }
 }
