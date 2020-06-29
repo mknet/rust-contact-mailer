@@ -22,19 +22,19 @@ mod mail;
 const SMTP_PASSWORD_KEY: &'static str = "MK_RUST_MAILER_SMTP_PASSWORD";
 
 trait Mailer{
-    fn send_mail(cfg: mail::Config, mail: mail::ContactMail);
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail);
 }
 
 struct WhateverMailer;
 struct DummyMailer;
 
 impl Mailer for WhateverMailer{
-    fn send_mail(cfg: mail::Config, mail: mail::ContactMail){
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail){
         mail::send_contact_mail(cfg,mail);
     }
 }
 impl Mailer for DummyMailer{
-    fn send_mail(cfg: mail::Config, mail: mail::ContactMail){
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail){
         unimplemented!();
     }
 }
@@ -73,6 +73,8 @@ fn handle_valid_body<M: Mailer>(body: Chunk, state: State, mailer: M) -> (State,
     println!("Body: {}", body_content);
 
     let mail_data: mail::ContactMail = serde_json::from_str(body_content.as_str()).unwrap();
+
+    mailer.send_mail(mail_config, mail_data);
 
     //send_fn(mail_config, mail_data);
     let mut res = create_empty_response(&state, StatusCode::OK);
