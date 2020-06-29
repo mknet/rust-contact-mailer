@@ -12,7 +12,7 @@ use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
-use gotham::state::{FromState, State};
+use gotham::state::{FromState, State, StateData};
 use hyper::header::HeaderValue;
 use hyper::{Body, Chunk, HeaderMap, Method, Response, StatusCode, Uri, Version};
 use log::info;
@@ -20,6 +20,31 @@ use log::info;
 mod mail;
 
 const SMTP_PASSWORD_KEY: &'static str = "MK_RUST_MAILER_SMTP_PASSWORD";
+
+trait Mailer{
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail);
+}
+
+struct WhateverMailer;
+struct DummyMailer;
+
+impl Mailer for WhateverMailer{
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail){
+        mail::send_contact_mail(cfg,mail);
+    }
+}
+impl Mailer for DummyMailer{
+    fn send_mail(&self, cfg: mail::Config, mail: mail::ContactMail){
+        unimplemented!();
+    }
+}
+
+/*
+#[derive(StateData)]
+struct SuperDuperStateObject{
+    foo: u32
+}
+*/
 
 fn print_request_elements(state: &State) {
     let method = Method::borrow_from(state);
@@ -37,14 +62,56 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
     let f = Body::take_from(&mut state)
         .concat2()
         .then(|full_body| match full_body {
-            Ok(valid_body) => future::ok(handle_valid_body(valid_body, state, mail::send_contact_mail)),
+            Ok(valid_body) => future::ok({
+
+                /*
+                    Since we now call handle_valid_body synchronously, we can extract things from the sate and borrow it to the function
+                    let whatever = state.try_borrow::<SuperDuperStateObject>().unwrap();
+                    handle_valid_body(valid_body, DummyMailer, whatever);
+                */                    
+
+                let mail_res = handle_valid_body(valid_body, DummyMailer);
+
+                /* we can now match on the mail_res and optionally handle the error
+                let response_prototype = match mail_res {
+                    Ok(_) => {
+                        create an ok response
+                    }
+                    Err(_) => {
+                        create a 400 or 500 error, depnding on the error type
+                    }
+                }
+                */
+
+                // we might as well re-use the response_prototype from above and enrich it here
+                let mut res = create_empty_response(&state, StatusCode::OK);
+                {
+                    let headers = res.headers_mut();
+                    headers.insert(
+                        "Access-Control-Allow-Origin",
+                        "https://www.marcelkoch.net".parse().unwrap(),
+                    );
+                    headers.insert(
+                        "Access-Control-Allow-Methods",
+                        "POST, OPTIONS, HEAD".parse().unwrap(),
+                    );
+                    headers.insert(
+                        "Access-Control-Allow-Headers",
+                        "Origin, Content-Type, X-Auth-Token".parse().unwrap(),
+                    );
+                };
+                (state, res)
+            }),
             Err(e) => future::err((state, e.into_handler_error())),
         });
 
     Box::new(f)
 }
 
-fn handle_valid_body<F: Fn (mail::Config, mail::ContactMail)>(body: Chunk, state: State, send_fn: F) -> (State, Response<Body>) {
+// the handle body function is no longer concerned with handling http details, we therefore don't need to pass the state
+fn handle_valid_body<M: Mailer>(body: Chunk, mailer: M) -> Result<(),()> {  // in a future iteration we should introduce Error types here
+
+    // it might be a good idea to do this once at startup and save it either in a (lazy) static or in the gotham state
     let smtp_password = dotenv::var(SMTP_PASSWORD_KEY).unwrap();
 
     let mail_config = mail::Config {
@@ -56,25 +123,12 @@ fn handle_valid_body<F: Fn (mail::Config, mail::ContactMail)>(body: Chunk, state
 
     let mail_data: mail::ContactMail = serde_json::from_str(body_content.as_str()).unwrap();
 
-    send_fn(mail_config, mail_data);
-    let mut res = create_empty_response(&state, StatusCode::OK);
-    {
-        let headers = res.headers_mut();
-        headers.insert(
-            "Access-Control-Allow-Origin",
-            "https://www.marcelkoch.net".parse().unwrap(),
-        );
-        headers.insert(
-            "Access-Control-Allow-Methods",
-            "POST, OPTIONS, HEAD".parse().unwrap(),
-        );
-        headers.insert(
-            "Access-Control-Allow-Headers",
-            "Origin, Content-Type, X-Auth-Token".parse().unwrap(),
-        );
-    };
+    mailer.send_mail(mail_config, mail_data);
 
-    (state, res)
+    // sending mail might fail (asynchonously), we might want to handle/map the result
+    // for now it always works:
+    Ok(())
+
 }
 
 pub fn options_handler(state: State) -> (State, Response<Body>) {
@@ -140,9 +194,8 @@ mod tests {
             // do nothing
         }
 
-        State::with_new(|state| {
-            handle_valid_body(hyper::Chunk::from(""), state, dummy_send);
-        });
+        // we don't need the state here anymore
+        handle_valid_body(hyper::Chunk::from(""), DummyMailer);
 
     }
 }
