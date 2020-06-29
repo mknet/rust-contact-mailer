@@ -12,7 +12,7 @@ use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
-use gotham::state::{FromState, State};
+use gotham::state::{FromState, State, StateData};
 use hyper::header::HeaderValue;
 use hyper::{Body, Chunk, HeaderMap, Method, Response, StatusCode, Uri, Version};
 use log::info;
@@ -39,6 +39,13 @@ impl Mailer for DummyMailer{
     }
 }
 
+/*
+#[derive(StateData)]
+struct SuperDuperStateObject{
+    foo: u32
+}
+*/
+
 fn print_request_elements(state: &State) {
     let method = Method::borrow_from(state);
     let uri = Uri::borrow_from(state);
@@ -56,6 +63,12 @@ fn post_handler(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(|full_body| match full_body {
             Ok(valid_body) => future::ok({
+
+                /*
+                    Since we now call handle_valid_body synchronously, we can extract things from the sate and borrow it to the function
+                    let whatever = state.try_borrow::<SuperDuperStateObject>().unwrap();
+                    handle_valid_body(valid_body, DummyMailer, whatever);
+                */                    
 
                 let mail_res = handle_valid_body(valid_body, DummyMailer);
 
